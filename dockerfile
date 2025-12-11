@@ -2,14 +2,15 @@ FROM node:20
 
 WORKDIR /app
 
-# Copia package.json e instala dependencias
-COPY package*.json ./
-
+COPY package.json ./
 RUN npm install
 
 # Copia el resto del código
 COPY . .
 
-# NO ejecutamos `npx prisma generate` aquí (lo hacemos en runtime,
-# con DATABASE_URL disponible desde docker-compose).
+RUN npx prisma generate
+
+RUN mkdir -p uploads
+EXPOSE 3000
+
 CMD ["npm", "start"]

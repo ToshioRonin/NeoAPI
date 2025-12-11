@@ -26,10 +26,13 @@ services:
       - postgres
     environment:
       NODE_ENV: development
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/neomanhwa_db?schema=public
       PORT: 3000
-      # Asegúrate que coincide con la DB en el servicio postgres (host = postgres)
-      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/neomanhwa_db
       JWT_SECRET: your_jwt_secret_key
+
+    env_file:
+      - .env
+
     volumes:
       - ./uploads:/app/uploads
       - ./:/app
