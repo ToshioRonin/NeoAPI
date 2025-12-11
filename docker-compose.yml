@@ -4,7 +4,7 @@ services:
   postgres:
     image: postgres:15
     container_name: neomanhwa_postgres
-    restart: "no"
+    restart: always
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
@@ -26,11 +26,12 @@ services:
       - postgres
     environment:
       NODE_ENV: development
-      PORT: 3000
-
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/neomanhwa_db?schema=public
-      
+      PORT: 3000
       JWT_SECRET: your_jwt_secret_key
+    
+    env_file:
+      - .env
 
     volumes:
       - ./uploads:/app/uploads

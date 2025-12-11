@@ -6,40 +6,42 @@ import { ACCESSTOKEN } from "../services/tokenService.js";
 
 const SALT_ROUNDS = 10;
 
-//login
+// Logica para login
 export const login = async (req, res) => {
   try {
-    //Para extraer el email y la contraseña del usuario
+    // Para extraer el email y la contraseña del usuario
     const { email, password } = req.body;
     console.log(req.body);
+
     if (!email || !password) {
       return res
         .status(400)
         .json({ message: "Email and password are required" });
     }
 
-    //Si el email o la contraseña son inválidos
+    // Buscar usuario por email
     const user = await prisma.user.findUnique({
       where: { email },
     });
 
+    // Si el usuario no existe o la contraseña es inválida
     if (!user || !(await comparePassword(password, user.password))) {
       return res.status(401).json({ message: "Invalid email or password" });
-      //Si el email y password se encuentarn vacios
-    } else {
-      const { password, updatedAt, ...responseUser } = user;
-      return res.status(200).json({
-        message: "Login successful",
-        token: JWT.sign(
-          { id: user.id, role: user.role },
-          process.env.JWT_SECRET,
-          {
-            expiresIn: "1h",
-          }
-        ),
-        user: responseUser,
-      });
     }
+
+    // Login exitoso
+    const { password: userPassword, updatedAt, ...responseUser } = user;
+    return res.status(200).json({
+      message: "Login successful",
+      token: JWT.sign(
+        { id: user.id, role: user.role },
+        process.env.JWT_SECRET,
+        {
+          expiresIn: "1h",
+        }
+      ),
+      user: responseUser,
+    });
   } catch (error) {
     return res
       .status(500)
@@ -49,20 +51,39 @@ export const login = async (req, res) => {
 
 export const RegisterUser = async (req, res) => {
   try {
-    const { First_Name, Last_Name, email, phone, password } = req.body;
+    const { First_Name, Last_Name, UserName, email, phone, password, Sexo } =
+      req.body; 
 
     // Validación básica de campos requeridos
-    if (!First_Name || !Last_Name || !email || !phone || !password) {
+    if (
+      !First_Name ||
+      !Last_Name ||
+      !UserName || 
+      !email ||
+      !phone ||
+      !password ||
+      !Sexo 
+    ) {
       return res.status(400).json({ error: "Todos los campos son requeridos" });
     }
 
-    // Validación de correo
+    // Validación de formato de correo
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       return res.status(400).json({ error: "Formato de email inválido" });
     }
 
-    // Verificar si el usuario ya existe
+    // Validación de UserName único
+    const existingUserName = await prisma.user.findUnique({
+      where: { UserName },
+    });
+    if (existingUserName) {
+      return res
+        .status(409)
+        .json({ error: "El nombre de usuario ya está registrado" });
+    }
+
+    // Verificar si el email ya existe
     const existingUser = await prisma.user.findUnique({
       where: { email },
     });
@@ -79,27 +100,29 @@ export const RegisterUser = async (req, res) => {
       data: {
         First_Name,
         Last_Name,
+        UserName, 
         email,
         phone,
         password: hashedPassword,
-        role: "ADMIN",
+        Sexo, 
+        role: "USER", 
       },
     });
 
+    // Se genera el token de acceso
     const token = JWT.sign(
       { id: newUser.id, role: newUser.role },
       process.env.JWT_SECRET,
       { expiresIn: "1h" }
     );
 
-    delete newUser.password;
+    // Eliminamos la contraseña del objeto de respuesta
+    const { password: newUserPassword, ...responseUser } = newUser;
 
     res.status(201).json({
       message: "Usuario registrado exitosamente",
-      user: newUser,
-      token: JWT.sign({ id: newUser.id }, process.env.JWT_SECRET, {
-        expiresIn: "1h",
-      }),
+      user: responseUser,
+      token,
     });
   } catch (error) {
     console.error("Error en registro:", error);
@@ -107,7 +130,7 @@ export const RegisterUser = async (req, res) => {
   }
 };
 
-// Logica del RefreshToken (algo fresco)
+// Logica del RefreshToken
 export const RefreshToken = async (req, res) => {
   try {
     const refreshToken = req.cookies.refreshToken;
@@ -143,7 +166,7 @@ export const RefreshToken = async (req, res) => {
   } catch (error) {
     console.error("Error al refrescar token:", error.message);
     res.clearCookie("refreshToken");
-    return res.status(403).json({ message: "Sesión Cerrada" });
+    return res.status(401).json({ message: "Sesión Cerrada" });
   }
 };
 
