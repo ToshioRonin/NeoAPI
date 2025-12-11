@@ -1,5 +1,16 @@
-import { PrismaClient } from '../generated/prisma/client.js';
+import { PrismaClient } from "@prisma/client";
+import { Pool } from "pg";
+import { PrismaPg } from "@prisma/adapter-pg";
 
-const prisma = new PrismaClient();
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  // Opcional: puedes ajustar pool.size, idleTimeoutMillis, etc.
+});
+
+const adapter = new PrismaPg(pool);
+
+const prisma = new PrismaClient({
+  adapter,
+});
 
 export default prisma;

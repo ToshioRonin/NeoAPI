@@ -4,7 +4,7 @@ services:
   postgres:
     image: postgres:15
     container_name: neomanhwa_postgres
-    restart: "no"
+    restart: always
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
@@ -27,13 +27,14 @@ services:
     environment:
       NODE_ENV: development
       PORT: 3000
-
-      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/neomanhwa_db?schema=public
-      
+      # Asegúrate que coincide con la DB en el servicio postgres (host = postgres)
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/neomanhwa_db
       JWT_SECRET: your_jwt_secret_key
-
     volumes:
       - ./uploads:/app/uploads
+      - ./:/app
+    # Generar Prisma en runtime (cuando la DB ya está accesible dentro de la red)
+    command: sh -c "npx prisma generate && npm start"
 
 volumes:
   postgres_data:
